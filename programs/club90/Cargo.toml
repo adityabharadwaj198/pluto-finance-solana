@@ -1,0 +1,23 @@
+[package]
+name = "club90"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2018"
+rust-version = "1.56"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "club90"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.21.0"
+anchor-spl = "0.21.0"
+spl-token = { version = "3.0.1", features = ["no-entrypoint"] }
+pyth-client = {version = "0.4.0", features = ["no-entrypoint"]}
