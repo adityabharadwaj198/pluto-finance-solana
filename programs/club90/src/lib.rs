@@ -95,9 +95,9 @@ pub mod club90 {
             return Err(ErrorCode::NotSyntheticUsd.into());
         }
         let slot = ctx.accounts.clock.slot;
-        let debt = calculate_debt(&base_account.assets, slot, base_account.max_delay).unwrap();
-        let user_debt = calculate_user_debt_in_usd(user_account, debt, base_account.shares);
-        let collateral_asset = base_account
+        let debt = calculate_debt(&base_account.assets, slot, base_account.max_delay).unwrap(); //if this is the 1st user to interact with the platform debt will be 0 
+        let user_debt = calculate_user_debt_in_usd(user_account, debt, base_account.shares); //calculating user's debt here -> which is the sum of USD price of all the assets he already owns  
+        let collateral_asset = base_account //this is trying to get the collateral asset which the user will deposit to gain the synthetic token
                                 .assets
                                 .clone()
                                 .into_iter()
@@ -105,33 +105,33 @@ pub mod club90 {
                                 .unwrap();
                                 msg!("debt {}", debt);
         
-        let max_user_debt = calculate_max_user_debt_in_usd(
+        let max_user_debt = calculate_max_user_debt_in_usd( //this will get the maximum debt a user is allowed to borrow from the whole system
                                 &collateral_asset,
                                 base_account.collateralization_level,
                                 user_account,
                                 );
                     
-        let mint_asset = &mut base_account
+        let mint_asset = &mut base_account //this will return the synthetic asset that the user is trying to mint (for example pTesla/pAAPL)
                             .assets
                             .clone()
                             .into_iter() //using iter_mut mutable `Vector`s can also be iterated over in a way that allows modifying each value
                             .find(|x| x.asset_address == *mint_token_address)
                             .unwrap();
 
-        let amount_mint_usd = calculate_amount_mint_in_usd(&mint_asset, amount);
+        let amount_mint_usd = calculate_amount_mint_in_usd(&mint_asset, amount); //the asset to be minted (gotten from above) * price of that asset is what this function returns
         
         msg!("mint {}", 123);
 
-        if max_user_debt - user_debt < amount_mint_usd {
+        if max_user_debt - user_debt < amount_mint_usd { //adding a check here to make sure that user does not borrow more than his maximum debt
             return Err(ErrorCode::MintLimit.into());
         }
-        let new_shares = calculate_new_shares(&base_account.shares, &debt, &amount_mint_usd);
+        let new_shares = calculate_new_shares(&base_account.shares, &debt, &amount_mint_usd); //if this is the first user new_shares will be 10^8.
 
         msg!("mint {}", 1234);
-        base_account.debt = debt + amount_mint_usd;
-        base_account.shares += new_shares;
-        user_account.shares += new_shares;
-        mint_asset.supply += amount;
+        base_account.debt = debt + amount_mint_usd; //this is the system's debt -> if this is the first user then it will be 0 + whatever amount was calculated in line#121
+        base_account.shares += new_shares; //if first user -> this will become 0 + 10^8 (if second user -> this will become 10^8 + new_shares calculated from L#128) 
+        user_account.shares += new_shares; //whatever new shares calculated in l#128 will be added to the user's account. 
+        mint_asset.supply += amount; 
         }
         // let cpi_ctx = CpiContext::from(&*ctx.accounts).with_signer(signer); //Context specifying non-argument inputs for cross-program-invocations.
         
