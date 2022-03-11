@@ -1,4 +1,4 @@
-const {createMint} = require('@solana/spl-token')
+const {createMint, u64} = require('@solana/spl-token')
 const TokenInstructions = require('@project-serum/serum').TokenInstructions
 const anchor = require('@project-serum/anchor')
 
@@ -39,6 +39,11 @@ const createToken = async({provider, mintAuthority}) => {
     return token;
 }
 
+const tou64 = (amount) => {
+  // eslint-disable-next-line new-cap
+  return u64(amount.toString())
+}
+
 const createAccountWithCollateral = async ({
     systemProgram,
     mintAuthority,
@@ -63,17 +68,37 @@ const createAccountWithCollateral = async ({
       mintAuthority,
       [],
       tou64(amount.toString())
-    )
-  
+    ) 
 }
 
+const newAccountWithLamports = async (connection, lamports = 1e10) => {
+  const account = new anchor.web3.Account()
+
+  let retries = 30
+  await connection.requestAirdrop(account.publicKey, lamports)
+  for (;;) {
+    await sleep(500)
+    // eslint-disable-next-line eqeqeq
+    if (lamports == (await connection.getBalance(account.publicKey))) {
+      return account
+    }
+    if (--retries <= 0) {
+      break
+    }
+  }
+  throw new Error(`Airdrop of ${lamports} failed`)
+}
+
+const sleep = (ms) => {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 module.exports = {
   createToken,
   createAccountWithCollateral,
-  createPriceFeed
+  createPriceFeed,
   // mintUsd,
   // updateAllFeeds,
-  // tou64,
-  // newAccountWithLamports
+  tou64,
+  newAccountWithLamports
 }

@@ -72,7 +72,7 @@ pub mod club90 {
                     last_update: 0, 
                     price: 0,
                     supply: 0,
-                    ticker: "CLUB".as_bytes().to_vec(),
+                    ticker: "PLTO".as_bytes().to_vec(),
                 };
                 base_account.assets = vec![usd_asset, collateral_asset];
                 Ok(())
@@ -174,14 +174,14 @@ pub mod club90 {
     }
 
     pub fn deposit(ctx:Context<Deposit>) -> Result<()> {
-        let base_account = &mut ctx.accounts.base_account;
-        let new_balance = ctx.accounts.collateral_account.amount;
-        let deposited = new_balance - base_account.collateral_balance;
+        let base_account = &mut ctx.accounts.base_account; //this happens after TransferInstruction is executed
+        let new_balance = ctx.accounts.collateral_account.amount; //new_Balance = the existing amount inside system's collateral acc
+        let deposited = new_balance - base_account.collateral_balance; ////wierd way of calcing deposited amt, collateral balance is the old amount of system's collateral acc
         if deposited == 0 {
             return Err(ErrorCode::ZeroDeposit.into());
         }
         let user_account = &mut ctx.accounts.user_account;
-        user_account.collateral += deposited; //user ka collateral badh raha hai -> means he has deposited SNY 
+        user_account.collateral += deposited; //user ka collateral badh raha hai -> means he has deposited PLTO 
         base_account.collateral_balance = new_balance; //after this the collateral balance will be set to the existing amt inside system's collateral acc. 
         Ok(())
     }        
@@ -312,9 +312,10 @@ pub struct Initialize<'info> {
 
 #[derive(Accounts)]
 pub struct CreateUserAccount<'info> {
-    #[account(mut)]
+    #[account(init, payer = user, space = 9000)]
     pub user_account: Account<'info, UserAccount>,
-    pub rent: Sysvar<'info, Rent>,
+    pub user: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -352,6 +353,7 @@ pub struct Deposit<'info> {
     pub base_account: Account<'info, BaseAccount>,
     #[account(mut)]
     pub user_account: Account<'info, UserAccount>,
+    #[account(mut)]
     pub collateral_account: Account<'info, TokenAccount>,
 }
 
